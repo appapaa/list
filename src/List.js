@@ -174,7 +174,7 @@ const styles = {
     },
     body: {
         overflowX: 'hidden',
-        willChange: 'transform',
+        position:'relative',
         scrollBehavior: 'smooth',
         WebkitOverflowScrolling: 'touch',
         flex: 1,

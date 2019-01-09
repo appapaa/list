@@ -34,7 +34,7 @@ class App extends Component {
                 <List
                     className={'list'}
                     rowCount={1000}
-                    height={2*600}
+                    height={600}
                     rowHeight={40}
                     widthLeft={300}
                     width={1000}
