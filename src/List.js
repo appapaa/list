@@ -1,4 +1,4 @@
-import React, {Component, PureComponent} from 'react';
+import React, {Component} from 'react';
 
 import _ from 'underscore';
 
@@ -8,7 +8,7 @@ class List extends Component {
         this.state = {
             top: 0,
             left: 0,
-            limit: 4,
+            limit: 2,
         };
         this.scrollLeft = 0;
     }
@@ -106,37 +106,41 @@ class List extends Component {
         const rows = Math.ceil(height / rowHeight) + 2 * limit;
         const _top = Math.max(top - limit, 0);
         const ids = _.range(_top, Math.min(_top + rows, rowCount));
+        const scrollHeight = rowCount * rowHeight;
         return <div style={styles.body}
                     onScroll={this._onScroll}
         >
             <div className="list-back" style={{
                 overflow: 'hidden',
-                height: rowCount * rowHeight
+                height: scrollHeight
             }}>
-                <div style={{
-                    transform: `translateY(${_top * rowHeight}px)`
-                }}>
-                    <div style={{float: 'left', width: widthLeft}}>
+                {/*<div style={{*/}
+                    {/*transform: `translateY(${_top * rowHeight}px)`*/}
+                {/*}}>*/}
+                    <div style={{position:'absolute',left:0,height: scrollHeight, width: widthLeft}}>
                         {_.map(ids, this.props.renderRowLeft)}
                     </div>
                     <div
                         style={{
-                            float: 'left',
+                            position:'absolute',
                             boxSizing: 'border-box',
                             overflowY: 'hidden',
                             overflowX: 'scroll',
-                            width: `calc(100% - ${widthLeft + widthRight}px)`
+                            left:widthLeft,
+                            right:widthRight,
+                            height: scrollHeight,
+                            width: `auto`
                         }}
                         onScroll={this._onScrollXBody}
                         ref={(body) => this.scrollBudy = body}>
-                        <div style={{width}}>
+                        <div style={{width,position:'relative'}}>
                             {_.map(ids, this.props.renderRow)}
                         </div>
                     </div>
-                    <div style={{float: 'left', width: widthRight}}>
+                    <div style={{position:'absolute',right:0,height: scrollHeight, width: widthRight}}>
                         {_.map(ids, this.props.renderRowRight)}
                     </div>
-                </div>
+                {/*</div>*/}
             </div>
         </div>;
     }
@@ -170,6 +174,9 @@ const styles = {
     },
     body: {
         overflowX: 'hidden',
+        willChange: 'transform',
+        scrollBehavior: 'smooth',
+        WebkitOverflowScrolling: 'touch',
         flex: 1,
         overflowY: 'scroll'
     },

@@ -31,6 +31,8 @@ body {
   background: #efefef;
 }
 .row{
+  position: absolute;
+  left:0;
   height: 40px;
   line-height: 40px;
   box-sizing: border-box;
