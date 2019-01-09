@@ -3,11 +3,13 @@ import './App.css'
 import List from './List';
 import _ from 'underscore';
 
-
+const table={
+    rowHeight: 40
+};
 class Line extends PureComponent {
     render() {
         const {i,n,text}=this.props;
-        return <div className={"row" + (i%2 ? ' row-gray': '')} >
+        return <div style={{top:table.rowHeight*i}} className={"row" + (i%2 ? ' row-gray': '')} >
             {_.map(_.range(n),j=><div className='w100' key={j.toString()}>{text} {i} {j}</div>)}
         </div>
 
@@ -32,7 +34,7 @@ class App extends Component {
                 <List
                     className={'list'}
                     rowCount={1000}
-                    height={600}
+                    height={2*600}
                     rowHeight={40}
                     widthLeft={300}
                     width={1000}
