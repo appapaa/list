@@ -1,8 +1,106 @@
-import React, {Component} from 'react';
+import React, {PureComponent} from 'react';
 
 import _ from 'underscore';
 
-class List extends Component {
+class ListBody extends PureComponent {
+    constructor(props) {
+        super(props);
+        this._top = 0;
+        this._fast = false;
+        this._fastT = 0;
+        this.state = {
+            top: 0,
+            left: 0,
+            limit: 5,
+            rows: 1,
+        };
+        this.scrollLeft = 0;
+    }
+
+    componentDidMount() {
+        this.body.addEventListener('scroll', this._onScroll, {
+            passive: true,
+        });
+        const {rowHeight} = this.props;
+        const rows = this.pBody.offsetHeight / rowHeight+1;
+        this.body.style.height = this.pBody.offsetHeight+'px';
+        // this.st.innerText = _.map(_.range(rows), i => `#row-${i}`).join(',') + '{display:block;}';
+        this.setState({rows});
+    }
+
+    _onScroll = (e) => {
+        if (e.target === e.currentTarget) {
+            const {rowHeight} = this.props;
+            const {rows} = this.state;
+            if(e.target.scrollTop <0){
+                e.target.scrollTop=0
+            }
+            const top = Math.floor(Math.max(e.target.scrollTop,0) / rowHeight);
+            if (top !== this._top) {
+                const fastT = new Date();
+                const deltaT = fastT - this._fastT;
+                const fast = deltaT >500 ? false : Math.abs(this._top-top)/deltaT>0.04;
+                this._fastT = fastT;
+                this._top = top;
+                if(fast!==this._fast){
+                    this._fast=fast;
+                    this.st2.innerText = fast
+                    ?   '.list-body{position:static!important;} .list-back{pointer-events:none;}.row{position:static;}'
+                    :'';
+                }
+                // this.st.innerText = _.map(_.range(rows), i => `#row-${top + i}`).join(',') + '{display:block;}';
+                this._onScrollThrottle(top)
+
+            }
+        }
+    };
+    _onScrollThrottle = _.throttle((_top) => {
+        const {limit, top} = this.state;
+        const calcTop = Math.max(_top - limit, 0);
+        if (calcTop !== top) {
+            this.setState({
+                top: calcTop
+            })
+        }
+
+    },40,{leading: false});
+
+    render() {
+        const {
+            width, styleBodyCenter,
+            styleBodyBack, styleBodyleft, styleBodyRight,
+            renderRowLeft, renderRow, renderRowRight
+        } = this.props;
+        const {top, limit, rows} = this.state;
+        const ids = _.range(top, top + rows + 2 * limit);
+        return (<div ref={pBody => this.pBody = pBody} style={styles.pBody}>
+            <div className="list-body"  ref={body => this.body = body} style={styles.body}
+            >
+                <style ref={st => this.st = st}></style>
+                <style ref={st2 => this.st2 = st2}></style>
+                {/*<style ref={st2 => this.st2 = st2}>{'.row{position:static}'}</style>*/}
+                <div className="list-back" style={styleBodyBack}>
+                    {renderRowLeft && <div style={styleBodyleft}>
+                        {_.map(ids, renderRowLeft)}
+                    </div>}
+                    <div
+                        style={styleBodyCenter}
+                        // onScroll={this._onScrollXBody}
+                        ref={(body) => this.scrollBudy = body}>
+                        <div style={{width, position: 'relative'}}>
+                            {_.map(ids, renderRow)}
+                        </div>
+                    </div>
+                    {renderRowRight && <div style={styleBodyRight}>
+                        {_.map(ids, renderRowRight)}
+                    </div>}
+                </div>
+            </div>
+        </div>);
+    }
+}
+
+class List extends PureComponent {
     constructor(props) {
         super(props);
         this.state = {
@@ -12,6 +110,7 @@ class List extends Component {
         };
         this.scrollLeft = 0;
     }
+
     _onScrollXBody = (e) => {
         if (e.target === e.currentTarget) {
             this.scrollLeft = e.target.scrollLeft;
@@ -27,33 +126,16 @@ class List extends Component {
         this.scrollHead.style.transform = `translateX(${-this.scrollLeft}px`;
         this.scrollFoot.style.transform = `translateX(${-this.scrollLeft}px`;
     };
-    _onScroll = (e) => {
-        if (e.target === e.currentTarget) {
-            this._onScrollThrottle(e.target)
-        }
-    };
-    _onScrollThrottle = _.throttle((target) => {
-        if (!target) {
-            return
-        }
-        const scrollTop = target.scrollTop;
-        const {rowHeight} = this.props;
-        const {top, limit} = this.state;
-        const _top = Math.floor(scrollTop / rowHeight);
-        if (Math.abs(_top - top) >= limit / 2) {
-            this.setState({
-                top: _top
-            })
-        }
-
-    }, 40, {leading: false});
 
     renderHead() {
-        const {width, widthLeft, widthRight} = this.props;
+        const {
+            width, widthLeft, widthRight,
+            renderHeadLeft, renderHeadRight
+        } = this.props;
         return <div style={styles.head}>
-            <div style={{width: widthLeft, float: 'left'}}>
-                {this.props.renderHeadLeft()}
-            </div>
+            {renderHeadLeft && <div style={{width: widthLeft, float: 'left'}}>
+                {renderHeadLeft()}
+            </div>}
             <div style={{
                 width: `calc(100% - ${widthLeft + widthRight}px)`,
                 float: 'left',
@@ -68,18 +150,21 @@ class List extends Component {
                     </div>
                 </div>
             </div>
-            <div style={{width: widthRight, float: 'left'}}>
-                {this.props.renderHeadRight()}
-            </div>
+            {renderHeadRight && <div style={{width: widthRight, float: 'left'}}>
+                {renderHeadRight()}
+            </div>}
         </div>
     }
 
     renderFoot() {
-        const {width, widthLeft, widthRight} = this.props;
+        const {
+            width, widthLeft, widthRight,
+            renderFootLeft, renderFoot, renderFootRight
+        } = this.props;
         return <div style={styles.head}>
-            <div style={{width: widthLeft, float: 'left'}}>
-                {this.props.renderFootLeft()}
-            </div>
+            {renderFootLeft && <div style={{width: widthLeft, float: 'left'}}>
+                {renderFootLeft()}
+            </div>}
             <div style={{
                 width: `calc(100% - ${widthLeft + widthRight}px)`,
                 float: 'left',
@@ -90,59 +175,47 @@ class List extends Component {
                          transform: `translateX(${-this.scrollLeft}px)`
                      }}>
                     <div style={{width}}>
-                        {this.props.renderFoot()}
+                        {renderFoot()}
                     </div>
                 </div>
             </div>
-            <div style={{width: widthRight, float: 'left'}}>
-                {this.props.renderFootRight()}
-            </div>
+            {renderFootRight && <div style={{width: widthRight, float: 'left'}}>
+                {renderFootRight()}
+            </div>}
         </div>
     }
 
     renderBody() {
-        const {rowCount, height, rowHeight, width, widthLeft, widthRight} = this.props;
-        const {top, limit} = this.state;
-        const rows = Math.ceil(height / rowHeight) + 2 * limit;
-        const _top = Math.max(top - limit, 0);
-        const ids = _.range(_top, Math.min(_top + rows, rowCount));
+        const {
+            height, rowCount, width, rowHeight, widthLeft, widthRight,
+            renderRowLeft, renderRowRight, renderRow
+        } = this.props;
         const scrollHeight = rowCount * rowHeight;
-        return <div style={styles.body}
-                    onScroll={this._onScroll}
-        >
-            <div className="list-back" style={{
-                overflow: 'hidden',
-                height: scrollHeight
-            }}>
-                {/*<div style={{*/}
-                    {/*transform: `translateY(${_top * rowHeight}px)`*/}
-                {/*}}>*/}
-                    <div style={{position:'absolute',left:0,height: scrollHeight, width: widthLeft}}>
-                        {_.map(ids, this.props.renderRowLeft)}
-                    </div>
-                    <div
-                        style={{
-                            position:'absolute',
-                            boxSizing: 'border-box',
-                            overflowY: 'hidden',
-                            overflowX: 'scroll',
-                            left:widthLeft,
-                            right:widthRight,
-                            height: scrollHeight,
-                            width: `auto`
-                        }}
-                        onScroll={this._onScrollXBody}
-                        ref={(body) => this.scrollBudy = body}>
-                        <div style={{width,position:'relative'}}>
-                            {_.map(ids, this.props.renderRow)}
-                        </div>
-                    </div>
-                    <div style={{position:'absolute',right:0,height: scrollHeight, width: widthRight}}>
-                        {_.map(ids, this.props.renderRowRight)}
-                    </div>
-                {/*</div>*/}
-            </div>
-        </div>;
+        // const rows = Math.ceil(height / rowHeight);
+        const styleBodyBack = {
+            overflow: 'hidden',
+            height: scrollHeight
+        };
+        const styleBodyRight = {position: 'absolute', right: 0, height: scrollHeight, width: widthRight};
+        const styleBodyCenter = {
+            position: 'absolute',
+            boxSizing: 'border-box',
+            overflowY: 'hidden',
+            overflowX: 'scroll',
+            left: widthLeft,
+            right: widthRight,
+            height: scrollHeight,
+            width: `auto`
+        };
+        const styleBodyleft = {position: 'absolute', left: 0, height: scrollHeight, width: widthLeft};
+        return <ListBody
+            {...{
+                rowCount, width, styleBodyCenter,
+                rowHeight,
+                styleBodyBack, styleBodyleft, styleBodyRight,
+                renderRowLeft, renderRowRight, renderRow
+            }}
+        />
     }
 
     render() {
@@ -158,26 +231,33 @@ class List extends Component {
                     style={styles.scrollX}>
                     <div
                         style={{
-                        height: 1,
-                        width: width,
-                        paddingLeft: widthLeft + widthRight
-                    }}></div>
+                            height: 1,
+                            width: width,
+                            paddingLeft: widthLeft + widthRight
+                        }}></div>
                 </div>
             </div>
         );
     }
 }
 
+List.defaultProps = {
+    widthLeft: 0,
+    widthRight: 0,
+};
 const styles = {
     head: {
         overflowY: 'scroll'
     },
+    pBody: {
+        position: 'relative',
+        overflow: 'hidden',
+        flex: 1,
+    },
     body: {
         overflowX: 'hidden',
-        position:'relative',
-        scrollBehavior: 'smooth',
-        WebkitOverflowScrolling: 'touch',
-        flex: 1,
+        position: 'relative',
+        // willChange: 'transform',
         overflowY: 'scroll'
     },
     group: {
